@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://code.jquery.com/jquery-3.6.4.slim.min.js" integrity="sha256-a2yjHM4jnF9f54xUQakjZGaqYs/V1CYvWpoqZzC2/Bw=" crossorigin="anonymous"></script>
+    <title>256</title>
+</head>
+<body>
+    <div class="board">
+    </div>
+</body>
+</html>
+
+<script>
+$(document).ready(() => {
+console.log("gelo");
+
+const board = [
+    [0, 0, 0, 0],    
+    [0, 0, 0, 0],    
+    [0, 0, 0, 0],    
+    [0, 0, 0, 0]    
+];
+// const board = [
+//     [2, 4, 8, 16],    
+//     [256, 128, 64, 32],    
+//     [512, 1024, 2048, 4096],    
+//     [512, 0, 0, 0]    
+// ];
+let turn = 0;
+
+function spawnRandom() {
+    let [r, c] = [~~(Math.random() * 4), ~~(Math.random() * 4)];
+    if (board[r][c] != 0) return spawnRandom();
+    board[r][c] = Math.random() < 0.2 ? 4 : 2;
+    console.log("spawned at", r, c);
+}
+
+function pushRight() {
+    for (let r = 0; r < 4; r++) {
+        let filled = board[r].filter(v => v != 0).length
+        let f = 0;
+
+        for (let c = 3; c >= 0; c--) {
+            if (board[r][c] == 0) continue;
+            let val = board[r][c];
+            board[r][c] = 0;
+            board[r][3-f++] = val;
+        }
+    }
+}
+
+function mergeRight() {
+    for (let r = 0; r < 4; r++) {
+        for (let c = 0; c < 3; c++) {
+            if (board[r][c] == board[r][c+1]) {
+                board[r][c+1] = board[r][c] + board[r][c+1];
+                board[r][c] = 0;
+            }
+        }
+    }
+}
+
+function pushLeft() {
+    for (let r = 0; r < 4; r++) {
+        let filled = board[r].filter(v => v != 0).length
+        let f = 0;
+
+        for (let c = 0; c < 4; c++) {
+            if (board[r][c] == 0) continue;
+            let val = board[r][c];
+            board[r][c] = 0;
+            board[r][f++] = val;
+        }
+    }
+}
+
+function mergeLeft() {
+    for (let r = 0; r < 4; r++) {
+        for (let c = 3; c >= 1; c--) {
+            if (board[r][c] == board[r][c-1]) {
+                board[r][c-1] = board[r][c] + board[r][c-1];
+                board[r][c] = 0;
+            }
+        }
+    }
+}
+
+function pushDown() {
+    for (let r = 0; r < 4; r++) {
+        let map = board.map(v => v[r])
+        let filled = map.filter(v => v != 0).length
+        let f = 0;
+
+        for (let c = 3; c >= 0; c--) {
+            if (map[c] == 0) continue;
+            let val = map[c];
+            map[c] = 0;
+            map[3-f++] = val;
+        }
+        map.forEach((v, i) => board[i][r] = v)
+        // board[r] = map;
+    }
+}
+
+function mergeDown() {
+    for (let r = 0; r < 4; r++) {
+        let map = board.map(v => v[r])
+
+        for (let c = 0; c < 3; c++) {
+            if (map[c] == map[c+1]) {
+                map[c+1] = map[c] + map[c+1];
+                map[c] = 0;
+            }
+        }
+        map.forEach((v, i) => board[i][r] = v)
+    }
+}
+
+function pushUp() {
+    for (let r = 0; r < 4; r++) {
+        let map = board.map(v => v[r])
+        let filled = map.filter(v => v != 0).length
+        let f = 0;
+
+        for (let c = 3; c >= 0; c--) {
+            if (map[c] == 0) continue;
+            let val = map[c];
+            map[c] = 0;
+            map[3-f++] = val;
+        }
+        map.reverse().forEach((v, i) => board[i][r] = v)
+        // board[r] = map;
+    }
+}
+
+function mergeUp() {
+    for (let r = 0; r < 4; r++) {
+        let map = board.map(v => v[r])
+
+        for (let c = 3; c >= 1; c--) {
+            if (map[c] == map[c-1]) {
+                map[c-1] = map[c] + map[c-1];
+                map[c] = 0;
+            }
+        }
+
+        map.forEach((v, i) => board[i][r] = v)
+    }
+}
+
+function logBoard(tag) {
+    console.log(`${turn} ${tag}\n` + JSON.stringify(board).replaceAll("],[", "\n").replace("[[", "").replace("]]", "").replaceAll(",", " "));
+}
+
+function drawBoard() {
+    $(".board").empty();
+    board.flat().forEach(cell => {
+        if (!cell) cell = "";
+        $(".board").append(`<div class="cell c${cell}"><span class="inline">${cell}</span></div>`);
+    });
+}
+
+// pushRight();
+// mergeRight();
+// pushRight();
+spawnRandom();
+spawnRandom();
+drawBoard();
+logBoard("init");
+
+$("body").keydown(e => {
+    if (e.key == "ArrowRight") {
+        pushRight();
+        mergeRight();
+        pushRight();
+        spawnRandom();
+        drawBoard();
+        turn++;
+    }
+
+    if (e.key == "ArrowLeft") {
+        pushLeft();
+        mergeLeft();
+        pushLeft();
+        spawnRandom();
+        drawBoard();
+        turn++;
+    }
+    
+    if (e.key == "ArrowDown") {
+        pushDown();
+        mergeDown();
+        pushDown();
+        spawnRandom();
+        drawBoard();
+        turn++;
+    }
+
+    if (e.key == "ArrowUp") {
+        pushUp();
+        mergeUp();
+        pushUp();
+        spawnRandom();
+        drawBoard();
+        turn++;
+    }
+})
+});
+</script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono&family=Pacifico&display=swap');
+
+    body {
+        padding: 0;
+        margin: 0;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: #121212;
+    }
+
+    .inline {
+        display: inline-block;
+    }
+
+    .board {
+        /* background-color: red; */
+        display: grid;
+        grid-template-rows: repeat(4, auto);
+        grid-template-columns: repeat(4, auto);
+        gap: 4px;
+    }
+
+    .cell {
+        font-family: "Pacifico";
+        line-height: 16px;
+        padding: 4px;
+        width: 128px;
+        height: 128px;
+        color: white;
+        font-size: 24px;
+        border-radius: 8px;
+        background-size: cover;
+    }
+
+    .c {
+        background-color: rgb(32, 32, 32);
+    }
+
+    .c2 {
+        background-color: hsl(210, 100%, 56%);
+        background-image: url("2.webp");
+    }
+
+    .c4 {
+        background-color: hsl(313, 100%, 56%);
+        background-image: url("4.webp");
+    }
+    
+    .c8 {
+        background-color: hsl(261, 100%, 56%);
+        background-image: url("8.webp");
+    }
+    
+    @keyframes jump {
+        100%,0% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(5px);
+        }
+    }
+
+    .c16 {
+        background-color: hsl(0, 100%, 56%);
+        background-image: url("16.webp");
+    }
+
+    .c16 span {
+        animation: jump .3s ease-in-out;
+		animation-iteration-count: infinite;
+    }
+    
+    .c32 {
+        background-color: hsl(234, 100%, 56%);
+        background-image: url("32.webp");
+    }
+    
+    .c64 {
+        animation: rainbow-bg 5s linear;
+		animation-iteration-count: infinite;
+        background-image: url("64.webp");
+    }
+    
+    .c128 {
+        animation: red 1s linear;
+		animation-iteration-count: infinite;
+        background-image: url("128.webp");
+    }
+    
+    .c256 {
+        background-image: url("256.webp");
+    }
+    
+    .c512 {
+        background-image: url("512.webp");
+    }
+
+    @keyframes spin {
+        100%,0% {
+            transform: rotate3d(0, 0, 0, 0deg);
+        }
+
+        50% {
+            transform: rotate3d(1, 1, 1, 360deg);
+        }
+    }
+
+    .c512 span {
+        animation: spin 2s linear;
+		animation-iteration-count: infinite;
+    }
+
+    .c1024 {
+        background-image: url("1024.webp");
+    }
+
+    @keyframes skew {
+        100%,0% {
+            transform: skewX(-40deg);
+        }
+
+        50% {
+            transform: skewX(40deg);
+        }
+    }
+
+    .c1024 span {
+        animation: skew .5s linear;
+		animation-iteration-count: infinite;
+    }
+
+    @keyframes stretch {
+        100%,0% {
+            transform: scaleX(1) scaleY(1.5) translate(12px, 3px);
+        }
+
+        50% {
+            transform: scaleX(1.5) scaleY(1) translate(12px, 3px);
+        }
+    }
+
+    .c2048 {
+        background-image: url("2048.webp");
+    }
+
+    .c2048 span {
+        animation: stretch .5s linear;
+		animation-iteration-count: infinite;
+    }
+
+    .c4096 {
+        font-family: "jetbrains mono";
+        color: green;
+        text-shadow: black 2px 2px;
+        background-image: url("4096.webp");
+    }
+
+    @keyframes rainbow-bg{
+		100%,0%{
+			background-color: rgb(255,0,0);
+		}
+		8%{
+			background-color: rgb(255,127,0);
+		}
+		16%{
+			background-color: rgb(255,255,0);
+		}
+		25%{
+			background-color: rgb(127,255,0);
+		}
+		33%{
+			background-color: rgb(0,255,0);
+		}
+		41%{
+			background-color: rgb(0,255,127);
+		}
+		50%{
+			background-color: rgb(0,255,255);
+		}
+		58%{
+			background-color: rgb(0,127,255);
+		}
+		66%{
+			background-color: rgb(0,0,255);
+		}
+		75%{
+			background-color: rgb(127,0,255);
+		}
+		83%{
+			background-color: rgb(255,0,255);
+		}
+		91%{
+			background-color: rgb(255,0,127);
+		}
+    }
+
+    @keyframes red {
+        100%,0% {
+            background-color: rgb(255,0,0);
+        }
+        50% {
+            background-color: rgb(110, 0, 0);
+        }
+    }
+</style>
